@@ -1,9 +1,9 @@
-const API_BASE = "";
+const API_BASE = window.location.origin;
 
 const PACKAGES = {
   early_bird: {
     label: "Special 20 Pendaftar Pertama",
-    price: 100,
+    price: 10000,
     display: "Rp190.000"
   },
   group_3: {

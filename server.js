@@ -22,7 +22,7 @@ const DATA_FILE = process.env.VERCEL
 const PACKAGES = {
   early_bird: {
     name: "Business Presentation - Special 20 Pendaftar Pertama",
-    amount: 100,
+    amount: 10000,
     qty: 1
   },
   group_3: {
