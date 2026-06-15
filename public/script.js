@@ -3,7 +3,7 @@ const API_BASE = "";
 const PACKAGES = {
   early_bird: {
     label: "Special 20 Pendaftar Pertama",
-    price: 190000,
+    price: 100,
     display: "Rp190.000"
   },
   group_3: {
@@ -15,23 +15,46 @@ const PACKAGES = {
 
 let snapLoaded = false;
 
+async function readJsonSafe(response) {
+  const text = await response.text();
+
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Response bukan JSON:", text);
+    throw new Error(
+      text || `Server error. Status: ${response.status}`
+    );
+  }
+}
+
 async function loadSnapScript() {
   if (snapLoaded) return;
 
   const res = await fetch(`${API_BASE}/api/config`);
-  const config = await res.json();
+  const config = await readJsonSafe(res);
+
+  if (!res.ok) {
+    throw new Error(config.message || "Gagal mengambil konfigurasi Midtrans");
+  }
+
+  if (!config.midtransClientKey) {
+    throw new Error("MIDTRANS_CLIENT_KEY belum diset di Vercel Environment Variables");
+  }
 
   const script = document.createElement("script");
+
   script.src = config.isProduction
     ? "https://app.midtrans.com/snap/snap.js"
     : "https://app.sandbox.midtrans.com/snap/snap.js";
+
   script.setAttribute("data-client-key", config.midtransClientKey);
 
   document.body.appendChild(script);
 
   await new Promise((resolve, reject) => {
     script.onload = resolve;
-    script.onerror = reject;
+    script.onerror = () => reject(new Error("Gagal load script Midtrans Snap"));
   });
 
   snapLoaded = true;
@@ -64,11 +87,15 @@ document.querySelectorAll(".open-payment").forEach((button) => {
   });
 });
 
-closeBtn.addEventListener("click", closePaymentModal);
+if (closeBtn) {
+  closeBtn.addEventListener("click", closePaymentModal);
+}
 
-modal.addEventListener("click", (event) => {
-  if (event.target === modal) closePaymentModal();
-});
+if (modal) {
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) closePaymentModal();
+  });
+}
 
 paymentForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -94,10 +121,14 @@ paymentForm.addEventListener("submit", async (event) => {
       body: JSON.stringify(payload)
     });
 
-    const data = await res.json();
+    const data = await readJsonSafe(res);
 
     if (!res.ok) {
       throw new Error(data.message || "Gagal membuat transaksi");
+    }
+
+    if (!data.token) {
+      throw new Error("Token Midtrans tidak ditemukan dari server");
     }
 
     window.snap.pay(data.token, {
@@ -118,9 +149,11 @@ paymentForm.addEventListener("submit", async (event) => {
     });
 
   } catch (error) {
+    console.error(error);
     alert(error.message);
   } finally {
     payButton.disabled = false;
+
     const selected = PACKAGES[packageInput.value] || PACKAGES.early_bird;
     payButton.textContent = `Bayar ${selected.display}`;
   }
