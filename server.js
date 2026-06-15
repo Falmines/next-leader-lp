@@ -19,7 +19,7 @@ const DATA_FILE = path.join(__dirname, "data", "orders.json");
 const PACKAGES = {
   early_bird: {
     name: "Business Presentation - Special 20 Pendaftar Pertama",
-    amount: 190000,
+    amount: 100,
     qty: 1
   },
   group_3: {
