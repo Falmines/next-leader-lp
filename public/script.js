@@ -1,15 +1,14 @@
 const API_BASE = window.location.origin;
-
 const PACKAGES = {
   early_bird: {
-    label: "Special 20 Pendaftar Pertama",
-    price: 190000,
-    display: "Rp190.000"
+    name: "Next Leader Training",
+    amount: 190000,
+    qty: 1
   },
   group_3: {
-    label: "Special Daftar Bertiga",
-    price: 490000,
-    display: "Rp490.000"
+    name: "Next Leader Group",
+    amount: 490000,
+    qty: 1
   }
 };
 

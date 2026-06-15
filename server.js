@@ -263,26 +263,28 @@ app.post("/api/create-transaction", async (req, res) => {
     if (!process.env.MIDTRANS_SERVER_KEY || !process.env.MIDTRANS_CLIENT_KEY) {
       return res.status(500).json({ message: "MIDTRANS_SERVER_KEY atau MIDTRANS_CLIENT_KEY belum diset" });
     }
-
+    const itemPrice = Number(selectedPackage.amount);
+    const itemQty = Number(selectedPackage.qty || 1);
+    const grossAmount = itemPrice * itemQty;
     const orderId = `NL-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    const parameter = {
-      transaction_details: {
-        order_id: orderId,
-        gross_amount: selectedPackage.amount
-      },
+const parameter = {
+  transaction_details: {
+    order_id: orderId,
+    gross_amount: grossAmount
+  },
       customer_details: {
         first_name: name,
         email,
         phone: normalizePhone(phone)
       },
-      item_details: [
-        {
-          id: packageType,
-          price: selectedPackage.amount,
-          quantity: selectedPackage.qty,
-          name: selectedPackage.name
-        }
-      ],
+item_details: [
+  {
+    id: packageType,
+    price: itemPrice,
+    quantity: itemQty,
+    name: selectedPackage.name
+  }
+],
       callbacks: {
         finish: process.env.PAYMENT_FINISH_URL || "http://localhost:3000/#daftar"
       }
@@ -293,7 +295,7 @@ app.post("/api/create-transaction", async (req, res) => {
       orderId,
       packageType,
       packageName: selectedPackage.name,
-      amount: selectedPackage.amount,
+      amount: grossAmount,
       customer: { name, email, phone: normalizePhone(phone) },
       status: "pending",
       snapToken: transaction.token,
