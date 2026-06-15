@@ -1,14 +1,15 @@
 const API_BASE = window.location.origin;
+
 const PACKAGES = {
   early_bird: {
-    name: "Next Leader Training",
-    amount: 190000,
-    qty: 1
+    label: "Person",
+    price: 190000,
+    display: "Rp190.000"
   },
   group_3: {
-    name: "Next Leader Group",
-    amount: 490000,
-    qty: 1
+    label: "Group",
+    price: 490000,
+    display: "Rp490.000"
   }
 };
 
@@ -21,9 +22,7 @@ async function readJsonSafe(response) {
     return JSON.parse(text);
   } catch (error) {
     console.error("Response bukan JSON:", text);
-    throw new Error(
-      text || `Server error. Status: ${response.status}`
-    );
+    throw new Error(text || `Server error. Status: ${response.status}`);
   }
 }
 
@@ -66,13 +65,22 @@ const selectedPackageText = document.getElementById("selectedPackageText");
 const paymentForm = document.getElementById("paymentForm");
 const payButton = document.getElementById("payButton");
 
-function openPaymentModal(packageType = "early_bird") {
-  const selected = PACKAGES[packageType] || PACKAGES.early_bird;
+function setSelectedPackage(packageType) {
+  if (!packageType || !PACKAGES[packageType]) {
+    packageType = "early_bird";
+  }
+
+  const selected = PACKAGES[packageType];
 
   packageInput.value = packageType;
   selectedPackageText.textContent = `Paket: ${selected.label} — ${selected.display}`;
   payButton.textContent = `Bayar ${selected.display}`;
 
+  return selected;
+}
+
+function openPaymentModal(packageType) {
+  setSelectedPackage(packageType);
   modal.classList.add("active");
 }
 
@@ -80,9 +88,14 @@ function closePaymentModal() {
   modal.classList.remove("active");
 }
 
+if (packageInput && selectedPackageText && payButton) {
+  setSelectedPackage(packageInput.value || "early_bird");
+}
+
 document.querySelectorAll(".open-payment").forEach((button) => {
   button.addEventListener("click", () => {
-    openPaymentModal(button.dataset.package || "early_bird");
+    const packageType = button.getAttribute("data-package") || "early_bird";
+    openPaymentModal(packageType);
   });
 });
 
@@ -96,64 +109,63 @@ if (modal) {
   });
 }
 
-paymentForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
+if (paymentForm) {
+  paymentForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
 
-  payButton.disabled = true;
-  payButton.textContent = "Memproses pembayaran...";
+    payButton.disabled = true;
+    payButton.textContent = "Memproses pembayaran...";
 
-  try {
-    await loadSnapScript();
+    try {
+      await loadSnapScript();
 
-    const payload = {
-      packageType: packageInput.value,
-      name: document.getElementById("customerName").value.trim(),
-      email: document.getElementById("customerEmail").value.trim(),
-      phone: document.getElementById("customerPhone").value.trim()
-    };
+      const payload = {
+        packageType: packageInput.value || "early_bird",
+        name: document.getElementById("customerName").value.trim(),
+        email: document.getElementById("customerEmail").value.trim(),
+        phone: document.getElementById("customerPhone").value.trim()
+      };
 
-    const res = await fetch(`${API_BASE}/api/create-transaction`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
+      const res = await fetch(`${API_BASE}/api/create-transaction`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
 
-    const data = await readJsonSafe(res);
+      const data = await readJsonSafe(res);
 
-    if (!res.ok) {
-      throw new Error(data.message || "Gagal membuat transaksi");
-    }
-
-    if (!data.token) {
-      throw new Error("Token Midtrans tidak ditemukan dari server");
-    }
-
-    window.snap.pay(data.token, {
-      onSuccess: function () {
-        alert("Pembayaran berhasil. Notifikasi akan dikirim ke email dan WhatsApp.");
-        closePaymentModal();
-      },
-      onPending: function () {
-        alert("Pembayaran menunggu penyelesaian. Silakan selesaikan pembayaran Anda.");
-        closePaymentModal();
-      },
-      onError: function () {
-        alert("Pembayaran gagal. Silakan coba lagi.");
-      },
-      onClose: function () {
-        console.log("Customer closed payment popup");
+      if (!res.ok) {
+        throw new Error(data.error || data.message || "Gagal membuat transaksi");
       }
-    });
 
-  } catch (error) {
-    console.error(error);
-    alert(error.message);
-  } finally {
-    payButton.disabled = false;
+      if (!data.token) {
+        throw new Error("Token Midtrans tidak ditemukan dari server");
+      }
 
-    const selected = PACKAGES[packageInput.value] || PACKAGES.early_bird;
-    payButton.textContent = `Bayar ${selected.display}`;
-  }
-});
+      window.snap.pay(data.token, {
+        onSuccess: function () {
+          alert("Pembayaran berhasil. Notifikasi akan dikirim ke email dan WhatsApp.");
+          closePaymentModal();
+        },
+        onPending: function () {
+          alert("Pembayaran menunggu penyelesaian. Silakan selesaikan pembayaran Anda.");
+          closePaymentModal();
+        },
+        onError: function () {
+          alert("Pembayaran gagal. Silakan coba lagi.");
+        },
+        onClose: function () {
+          console.log("Customer closed payment popup");
+        }
+      });
+    } catch (error) {
+      console.error(error);
+      alert(error.message);
+    } finally {
+      payButton.disabled = false;
+      setSelectedPackage(packageInput.value || "early_bird");
+    }
+  });
+}
