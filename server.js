@@ -387,8 +387,10 @@ app.use((req, res) => {
     return res.status(404).json({ message: "API route not found" });
   }
 
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  return res.sendFile(path.join(__dirname, "public", "index.html"));
 });
+
+module.exports = app;
 
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {
